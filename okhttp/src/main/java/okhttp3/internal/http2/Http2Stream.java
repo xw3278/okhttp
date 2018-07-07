@@ -180,9 +180,17 @@ public final class Http2Stream {
         outFinished = true;
       }
     }
+
+    // Only DATA frames are subject to flow-control. Transmit the HEADER frame if the connection
+    // flow-control window is fully depleted.
+    boolean connectionWindowEmpty;
+    synchronized (connection) {
+      connectionWindowEmpty = connection.bytesLeftInWriteWindow == 0L;
+    }
+
     connection.writeSynReply(id, outFinished, responseHeaders);
 
-    if (outFinished) {
+    if (outFinished || connectionWindowEmpty) {
       connection.flush();
     }
   }
